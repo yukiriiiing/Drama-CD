@@ -35,8 +35,8 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
         <select id="statusFilter" onchange="render()" class="p-2 border rounded-md text-sm bg-white">
           <option value="all">전체 상태</option>
-          <option value="completed">★ 다 들음</option>
-          <option value="listening">🎧 듣는 중</option>
+          <option value="completed">💿 fin</option>
+          <option value="listening">🎧 ing</option>
         </select>
 
         <select id="ratingFilter" onchange="render()" class="p-2 border rounded-md text-sm bg-white">
@@ -97,8 +97,8 @@
           <div>
             <label class="text-xs text-gray-500 font-medium">상태</label>
             <select id="formStatus" class="w-full p-2 border rounded-md text-sm">
-              <option value="completed">다 들음</option>
-              <option value="listening">듣는 중</option>
+              <option value="completed">💿 fin</option>
+              <option value="listening">🎧 ing</option>
             </select>
           </div>
           <div>
@@ -284,7 +284,7 @@
               <div class="flex justify-between text-xs text-gray-400 mb-1">
                 <span>${item.date}</span>
                 <span class="font-medium ${item.status === 'completed' ? 'text-green-600' : 'text-amber-600'}">
-                  ${item.status === 'completed' ? '다 들음' : '듣는 중'}
+                  ${item.status === 'completed' ? '💿 fin' : '🎧 ing'}
                 </span>
               </div>
               <h2 class="font-bold text-base truncate">${item.title}</h2>
@@ -360,7 +360,7 @@
       document.getElementById('receiptTitle').innerText = item.title;
       document.getElementById('receiptCv').innerText = item.cv?.join(', ') || '-';
       document.getElementById('receiptCircle').innerText = item.circle || '-';
-      document.getElementById('receiptStatus').innerText = item.status === 'completed' ? '★ 다 들음' : '🎧 듣는 중';
+      document.getElementById('receiptStatus').innerText = item.status === 'completed' ? '💿 fin' : '🎧 ing';
       document.getElementById('receiptRating').innerText = '★'.repeat(Math.floor(item.rating)) + ` (${item.rating})`;
       
       document.getElementById('receiptReview').innerText = item.review || '감상평이 없습니다.';
