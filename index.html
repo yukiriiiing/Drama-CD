@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drama CD Archive</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html-to-image CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: sans-serif; }
+    .font-mono-receipt { font-family: 'Space Mono', monospace; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased min-h-screen">
+
+  <div id="app" class="max-w-4xl mx-auto p-4 md:p-6">
+    <!-- 헤더 -->
+    <header class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold tracking-tight">🎧 Drama CD Archive</h1>
+      <button onclick="openModal()" class="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-stone-800 transition">
+        + 새 기록 추가
+      </button>
+    </header>
+
+    <!-- 필터 영역 -->
+    <section class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 space-y-3">
+      <div>
+        <input type="text" id="searchInput" oninput="render()" placeholder="제목, 키워드 검색..." class="w-full p-2.5 border rounded-md text-sm bg-gray-50 focus:bg-white transition">
+      </div>
+      
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <select id="statusFilter" onchange="render()" class="p-2 border rounded-md text-sm bg-white">
+          <option value="all">전체 상태</option>
+          <option value="completed">★ 다 들음</option>
+          <option value="listening">🎧 듣는 중</option>
+        </select>
+
+        <select id="ratingFilter" onchange="render()" class="p-2 border rounded-md text-sm bg-white">
+          <option value="all">전체 별점</option>
+          <option value="5">★ 5점</option>
+          <option value="4">★ 4점 이상</option>
+          <option value="3">★ 3점 이상</option>
+        </select>
+
+        <select id="cvFilter" onchange="render()" class="p-2 border rounded-md text-sm bg-white">
+          <option value="all">전체 성우</option>
+        </select>
+
+        <select id="circleFilter" onchange="render()" class="p-2 border rounded-md text-sm bg-white">
+          <option value="all">전체 서클/레이블</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- 목록 영역 -->
+    <section id="itemList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    </section>
+  </div>
+
+  <!-- 등록 / 수정 모달 -->
+  <div id="formModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+    <div class="bg-white p-6 rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4">
+      <h2 id="modalTitle" class="text-lg font-bold">새 기록 추가</h2>
+      
+      <form id="cdForm" onsubmit="handleFormSubmit(event)" class="space-y-3">
+        <div>
+          <label class="text-xs text-gray-500 font-medium">감상 날짜</label>
+          <input type="date" id="formDate" class="w-full p-2 border rounded-md text-sm" required>
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-500 font-medium">제목</label>
+          <input type="text" id="formTitle" placeholder="드라마 CD 제목" class="w-full p-2 border rounded-md text-sm" required>
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-500 font-medium">표지 이미지 URL</label>
+          <input type="url" id="formCoverUrl" placeholder="https://..." class="w-full p-2 border rounded-md text-sm">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-gray-500 font-medium">성우 (쉼표 구분)</label>
+            <input type="text" id="formCv" placeholder="성우A, 성우B" class="w-full p-2 border rounded-md text-sm">
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 font-medium">서클/레이블</label>
+            <input type="text" id="formCircle" placeholder="서클명" class="w-full p-2 border rounded-md text-sm">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs text-gray-500 font-medium">상태</label>
+            <select id="formStatus" class="w-full p-2 border rounded-md text-sm">
+              <option value="completed">다 들음</option>
+              <option value="listening">듣는 중</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-500 font-medium">별점 (0~5)</label>
+            <input type="number" id="formRating" step="0.5" min="0" max="5" value="5" class="w-full p-2 border rounded-md text-sm">
+          </div>
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-500 font-medium">감상</label>
+          <textarea id="formReview" placeholder="감상평을 입력하세요..." class="w-full p-2 border rounded-md text-sm h-24"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeModal()" class="px-4 py-2 border rounded-md text-sm">취소</button>
+          <button type="submit" class="px-4 py-2 bg-black text-white rounded-md text-sm font-medium">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 영수증 모달 -->
+  <div id="receiptModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
+    <div class="bg-white p-5 rounded-xl max-w-2xl w-full flex flex-col items-center gap-4 my-auto">
+      
+      <!-- 레이아웃 스위치 (세로 / 가로 트위터용) -->
+      <div class="flex bg-gray-100 p-1 rounded-lg text-xs font-medium w-full max-w-xs">
+        <button id="btnVertical" onclick="switchLayout('vertical')" class="flex-1 py-1.5 rounded-md bg-white shadow-sm transition">📄 세로형</button>
+        <button id="btnHorizontal" onclick="switchLayout('horizontal')" class="flex-1 py-1.5 rounded-md text-gray-500 transition">🐦 가로형 (트위터용)</button>
+      </div>
+
+      <!-- 영수증 영역 (세로 / 가로 가변 구조) -->
+      <div id="receiptContainer" class="w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 transition-all duration-200">
+        
+        <!-- 헤더 -->
+        <div class="text-center border-b border-dashed border-stone-400 pb-2">
+          <h2 class="text-base font-bold tracking-widest uppercase">DRAMA CD RECEIPT</h2>
+          <p id="receiptDate" class="text-[11px] text-stone-500"></p>
+        </div>
+
+        <!-- 가로형 분기 컨테이너 -->
+        <div id="receiptBody" class="flex flex-col gap-3">
+          
+          <!-- 왼쪽 영역 (가로형 전환 시 왼쪽 배치) -->
+          <div id="receiptLeft" class="flex flex-col gap-3">
+            <div id="receiptCoverBox" class="w-full flex justify-center bg-stone-200/50 p-2 rounded hidden">
+              <img id="receiptCover" src="" alt="Cover" class="w-full h-auto max-h-60 object-contain rounded block">
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex flex-col gap-1 pb-1">
+                <span class="text-stone-400 font-semibold text-[10px]">TITLE</span>
+                <div id="receiptTitle" class="font-bold text-stone-800 break-words leading-relaxed text-xs"></div>
+                <div class="w-full h-[1px] bg-stone-200 mt-1"></div>
+              </div>
+
+              <div class="flex justify-between items-center pb-1 gap-2">
+                <span class="text-stone-400 font-semibold text-[10px] shrink-0">CAST</span>
+                <span id="receiptCv" class="text-right break-words max-w-[180px]"></span>
+              </div>
+              <div class="w-full h-[1px] bg-stone-200"></div>
+
+              <div class="flex justify-between items-center pb-1 gap-2">
+                <span class="text-stone-400 font-semibold text-[10px] shrink-0">CIRCLE</span>
+                <span id="receiptCircle" class="text-right break-words max-w-[180px]"></span>
+              </div>
+              <div class="w-full h-[1px] bg-stone-200"></div>
+            </div>
+          </div>
+
+          <!-- 오른쪽 영역 (가로형 전환 시 오른쪽 배치) -->
+          <div id="receiptRight" class="flex flex-col gap-3">
+            <div id="verticalStatusRating" class="space-y-2 text-xs">
+              <div class="flex justify-between items-center pb-1">
+                <span class="text-stone-400 font-semibold text-[10px]">STATUS</span>
+                <span id="receiptStatus" class="font-bold"></span>
+              </div>
+              <div class="w-full h-[1px] bg-stone-200"></div>
+
+              <div class="flex justify-between items-center pb-1">
+                <span class="text-stone-400 font-semibold text-[10px]">RATING</span>
+                <span id="receiptRating" class="text-amber-600 font-bold"></span>
+              </div>
+            </div>
+
+            <div id="receiptReviewBox" class="border-t border-dashed border-stone-400 pt-2 text-xs leading-relaxed text-stone-700 whitespace-pre-wrap break-words flex-1">
+              <p class="font-semibold mb-1 text-stone-400 text-[10px]">[ REVIEW ]</p>
+              <span id="receiptReview"></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 바코드 하단 푸터 -->
+        <div class="mt-1 text-center border-t border-stone-300 pt-2">
+          <div class="flex justify-center items-end h-8 gap-[2px] px-4 my-1 overflow-hidden">
+            <div class="bg-stone-800 w-[2px] h-full"></div>
+            <div class="bg-stone-800 w-[1px] h-full"></div>
+            <div class="bg-stone-800 w-[3px] h-full"></div>
+            <div class="bg-stone-800 w-[1px] h-full"></div>
+            <div class="bg-stone-800 w-[2px] h-full"></div>
+            <div class="bg-stone-800 w-[4px] h-full"></div>
+            <div class="bg-stone-800 w-[1px] h-full"></div>
+            <div class="bg-stone-800 w-[2px] h-full"></div>
+            <div class="bg-stone-800 w-[3px] h-full"></div>
+          </div>
+          <p class="text-[9px] text-stone-500 font-mono-receipt tracking-widest mt-0.5">1 2 3 4 5 6 7 8 9 0</p>
+          <p class="text-[8px] text-stone-400">MY DRAMA CD ARCHIVE</p>
+        </div>
+      </div>
+
+      <!-- 생성 결과 이미지 -->
+      <div id="imageResultBox" class="hidden flex-col items-center gap-2 w-full">
+        <p class="text-xs text-amber-600 font-bold animate-pulse text-center">
+          👇 이미지를 꾹 누르면 [사진에 저장]이 가능합니다!
+        </p>
+        <div class="border rounded-lg overflow-hidden shadow-sm bg-white max-w-full">
+          <img id="generatedReceiptImg" class="max-w-full h-auto block select-none" alt="영수증 이미지">
+        </div>
+      </div>
+
+      <!-- 컨트롤 버튼 -->
+      <div class="flex gap-2 w-full">
+        <button id="generateBtn" onclick="generateReceiptImage()" class="flex-1 bg-stone-800 text-white py-2.5 rounded-md text-xs font-medium hover:bg-stone-700 transition">
+          📷 트위터용 이미지 생성하기
+        </button>
+        <button onclick="closeReceiptModal()" class="px-4 bg-gray-200 text-gray-700 py-2.5 rounded-md text-xs hover:bg-gray-300">
+          닫기
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let items = JSON.parse(localStorage.getItem('drama_reviews')) || [
+      {
+        id: '1',
+        date: '2026-09-10',
+        title: '【「すき」「かわいい」が止まらないっ135分♡♡♡ とろあまキス90回超え】たいがくんはあなたしか見えない♡年下彼氏の自己肯定感爆上がりわからせボックス',
+        cover_url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=400&q=80',
+        cv: ['성우 A'],
+        circle: '-',
+        rating: 5,
+        review: '목소리가 너무 좋고 대사가 너무 달달해요. 완독 추천합니다!',
+        status: 'completed'
+      }
+    ];
+
+    let currentLayout = 'vertical';
+    let currentReceiptItem = null;
+
+    function saveToStorage() {
+      localStorage.setItem('drama_reviews', JSON.stringify(items));
+    }
+
+    function render() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const status = document.getElementById('statusFilter').value;
+      const rating = document.getElementById('ratingFilter').value;
+      const cv = document.getElementById('cvFilter').value;
+      const circle = document.getElementById('circleFilter').value;
+
+      const filtered = items.filter(item => {
+        const matchSearch = item.title.toLowerCase().includes(search) || item.review?.toLowerCase().includes(search);
+        const matchStatus = status === 'all' || item.status === status;
+        const matchRating = rating === 'all' || Math.floor(item.rating) >= Number(rating);
+        const matchCv = cv === 'all' || (item.cv && item.cv.includes(cv));
+        const matchCircle = circle === 'all' || item.circle === circle;
+        return matchSearch && matchStatus && matchRating && matchCv && matchCircle;
+      });
+
+      const listEl = document.getElementById('itemList');
+      listEl.innerHTML = '';
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'border bg-white p-4 rounded-xl shadow-sm hover:shadow transition flex gap-4';
+        card.innerHTML = `
+          ${item.cover_url ? `<img src="${item.cover_url}" class="w-20 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100">` : ''}
+          <div class="flex-1 flex flex-col justify-between overflow-hidden">
+            <div>
+              <div class="flex justify-between text-xs text-gray-400 mb-1">
+                <span>${item.date}</span>
+                <span class="font-medium ${item.status === 'completed' ? 'text-green-600' : 'text-amber-600'}">
+                  ${item.status === 'completed' ? '다 들음' : '듣는 중'}
+                </span>
+              </div>
+              <h2 class="font-bold text-base truncate">${item.title}</h2>
+              <p class="text-xs text-amber-600 font-bold mt-1">★ ${item.rating}</p>
+            </div>
+            <div class="flex gap-2 mt-3 text-xs">
+              <button onclick="openReceipt('${item.id}')" class="bg-stone-100 hover:bg-stone-200 text-stone-700 px-2.5 py-1 rounded-md font-mono-receipt">
+                🧾 영수증
+              </button>
+              <button onclick="deleteItem('${item.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-md">
+                삭제
+              </button>
+            </div>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    function switchLayout(type) {
+      currentLayout = type;
+      const container = document.getElementById('receiptContainer');
+      const body = document.getElementById('receiptBody');
+      const left = document.getElementById('receiptLeft');
+      const right = document.getElementById('receiptRight');
+      
+      const btnV = document.getElementById('btnVertical');
+      const btnH = document.getElementById('btnHorizontal');
+
+      if (type === 'horizontal') {
+        // 가로 트위터 레이아웃
+        container.className = "w-[560px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3";
+        body.className = "grid grid-cols-2 gap-4 items-start";
+        left.className = "flex flex-col gap-2 border-r border-dashed border-stone-300 pr-4";
+        right.className = "flex flex-col gap-2 h-full justify-between";
+
+        btnH.className = "flex-1 py-1.5 rounded-md bg-white shadow-sm transition text-black font-bold";
+        btnV.className = "flex-1 py-1.5 rounded-md text-gray-500 transition";
+      } else {
+        // 세로 기본 레이아웃
+        container.className = "w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3";
+        body.className = "flex flex-col gap-3";
+        left.className = "flex flex-col gap-3";
+        right.className = "flex flex-col gap-3";
+
+        btnV.className = "flex-1 py-1.5 rounded-md bg-white shadow-sm transition text-black font-bold";
+        btnH.className = "flex-1 py-1.5 rounded-md text-gray-500 transition";
+      }
+    }
+
+    async function toDataURL(url) {
+      if (!url) return '';
+      try {
+        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+        if (!response.ok) throw new Error();
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        return url;
+      }
+    }
+
+    async function openReceipt(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      currentReceiptItem = item;
+      document.getElementById('receiptDate').innerText = item.date;
+      document.getElementById('receiptTitle').innerText = item.title;
+      document.getElementById('receiptCv').innerText = item.cv?.join(', ') || '-';
+      document.getElementById('receiptCircle').innerText = item.circle || '-';
+      document.getElementById('receiptStatus').innerText = item.status === 'completed' ? '★ 다 들음' : '🎧 듣는 중';
+      document.getElementById('receiptRating').innerText = '★'.repeat(Math.floor(item.rating)) + ` (${item.rating})`;
+      
+      document.getElementById('receiptReview').innerText = item.review || '감상평이 없습니다.';
+
+      document.getElementById('receiptContainer').classList.remove('hidden');
+      document.getElementById('imageResultBox').classList.add('hidden');
+      document.getElementById('imageResultBox').classList.remove('flex');
+      document.getElementById('generateBtn').classList.remove('hidden');
+
+      switchLayout('vertical'); // 기본 세로로 열기
+
+      document.getElementById('receiptModal').classList.remove('hidden');
+      document.getElementById('receiptModal').classList.add('flex');
+
+      const coverImg = document.getElementById('receiptCover');
+      const coverBox = document.getElementById('receiptCoverBox');
+      
+      if (item.cover_url) {
+        coverBox.classList.remove('hidden');
+        const dataUrl = await toDataURL(item.cover_url);
+        coverImg.src = dataUrl;
+      } else {
+        coverBox.classList.add('hidden');
+      }
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receiptModal').classList.add('hidden');
+      document.getElementById('receiptModal').classList.remove('flex');
+    }
+
+    function generateReceiptImage() {
+      const node = document.getElementById('receiptContainer');
+      
+      htmlToImage.toPng(node, { cacheBust: true, pixelRatio: 2 })
+      .then(dataUrl => {
+        const imgEl = document.getElementById('generatedReceiptImg');
+        imgEl.src = dataUrl;
+
+        node.classList.add('hidden');
+        document.getElementById('generateBtn').classList.add('hidden');
+        
+        const resultBox = document.getElementById('imageResultBox');
+        resultBox.classList.remove('hidden');
+        resultBox.classList.add('flex');
+      })
+      .catch(err => {
+        alert('이미지 생성에 실패했습니다.');
+      });
+    }
+
+    function openModal() {
+      document.getElementById('cdForm').reset();
+      document.getElementById('formDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('formModal').classList.remove('hidden');
+      document.getElementById('formModal').classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('formModal').classList.add('hidden');
+      document.getElementById('formModal').classList.remove('flex');
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      const newItem = {
+        id: Date.now().toString(),
+        date: document.getElementById('formDate').value,
+        title: document.getElementById('formTitle').value,
+        cover_url: document.getElementById('formCoverUrl').value,
+        cv: document.getElementById('formCv').value.split(',').map(s => s.trim()).filter(Boolean),
+        circle: document.getElementById('formCircle').value,
+        status: document.getElementById('formStatus').value,
+        rating: Number(document.getElementById('formRating').value),
+        review: document.getElementById('formReview').value,
+      };
+
+      items.unshift(newItem);
+      saveToStorage();
+      render();
+      closeModal();
+    }
+
+    function deleteItem(id) {
+      if (confirm('삭제하시겠습니까?')) {
+        items = items.filter(i => i.id !== id);
+        saveToStorage();
+        render();
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
