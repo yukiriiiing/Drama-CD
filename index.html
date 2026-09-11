@@ -124,7 +124,7 @@
 
   <!-- 영수증 모달 -->
   <div id="receiptModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
-    <div class="bg-white p-4 md:p-5 rounded-xl max-w-2xl w-full flex flex-col items-center gap-4 my-auto max-h-[95vh] overflow-x-auto overflow-y-auto">
+    <div class="bg-white p-4 md:p-5 rounded-xl max-w-2xl w-full flex flex-col items-center gap-4 my-auto max-h-[95vh] overflow-y-auto">
       
       <!-- 레이아웃 스위치 (세로 / 가로 트위터용) -->
       <div class="flex bg-gray-100 p-1 rounded-lg text-xs font-medium w-full max-w-xs shrink-0">
@@ -132,8 +132,8 @@
         <button id="btnHorizontal" onclick="switchLayout('horizontal')" class="flex-1 py-1.5 rounded-md text-gray-500 transition">🐦 가로형 (트위터용)</button>
       </div>
 
-      <!-- 영수증 컨테이너 스크롤 감싸기 (모바일 짤림 방지) -->
-      <div class="w-full overflow-x-auto flex justify-center py-1">
+      <!-- 영수증 축소/확대 스케일 감싸기 래퍼 -->
+      <div id="receiptScaleWrapper" class="w-full flex justify-center py-1 overflow-hidden transition-all duration-200">
         <div id="receiptContainer" class="w-full max-w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 transition-all duration-200 shrink-0">
           
           <!-- 헤더 -->
@@ -187,6 +187,7 @@
                 </div>
               </div>
 
+              <!-- 후기 영역 (태그 내 공백 전면 제거) -->
               <div id="receiptReviewBox" class="border-t border-dashed border-stone-400 pt-2 text-xs leading-relaxed text-stone-700 whitespace-pre-wrap break-words flex-1">
                 <p class="font-semibold mb-1 text-stone-400 text-[10px]">[ REVIEW ]</p>
                 <span id="receiptReview"></span>
@@ -195,24 +196,31 @@
 
           </div>
 
-          <!-- 길어진 바코드 하단 푸터 -->
+          <!-- 바코드 하단 푸터 (높이 통일 & 가로 폭 넓힘) -->
           <div class="mt-2 text-center border-t border-stone-300 pt-3">
-            <div class="flex justify-center items-end h-14 gap-[2px] px-2 my-1 overflow-hidden">
+            <div class="flex justify-center items-center h-12 gap-[3px] px-1 my-1 overflow-hidden w-full max-w-[260px] mx-auto">
               <div class="bg-stone-800 w-[2px] h-full"></div>
-              <div class="bg-stone-800 w-[1px] h-[85%]"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
               <div class="bg-stone-800 w-[3px] h-full"></div>
-              <div class="bg-stone-800 w-[1px] h-[90%]"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
               <div class="bg-stone-800 w-[2px] h-full"></div>
               <div class="bg-stone-800 w-[4px] h-full"></div>
-              <div class="bg-stone-800 w-[1px] h-[80%]"></div>
-              <div class="bg-stone-800 w-[2px] h-full"></div>
-              <div class="bg-stone-800 w-[3px] h-[95%]"></div>
               <div class="bg-stone-800 w-[1px] h-full"></div>
-              <div class="bg-stone-800 w-[2px] h-[85%]"></div>
               <div class="bg-stone-800 w-[3px] h-full"></div>
-              <div class="bg-stone-800 w-[1px] h-full"></div>
-              <div class="bg-stone-800 w-[4px] h-[90%]"></div>
               <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
+              <div class="bg-stone-800 w-[4px] h-full"></div>
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
+              <div class="bg-stone-800 w-[3px] h-full"></div>
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
+              <div class="bg-stone-800 w-[4px] h-full"></div>
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
+              <div class="bg-stone-800 w-[3px] h-full"></div>
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
             </div>
             <p class="text-[10px] text-stone-500 font-mono-receipt tracking-widest mt-1">1 2 3 4 5 6 7 8 9 0</p>
             <p class="text-[8px] text-stone-400">MY DRAMA CD ARCHIVE</p>
@@ -317,6 +325,33 @@
       });
     }
 
+    // 화면 너비에 따른 자동 영수증 스케일링 (가로형 모바일 짤림 방지)
+    function fitReceiptScale() {
+      const wrapper = document.getElementById('receiptScaleWrapper');
+      const container = document.getElementById('receiptContainer');
+      
+      if (!wrapper || !container) return;
+
+      if (currentLayout === 'horizontal') {
+        const parentWidth = wrapper.clientWidth - 10;
+        const targetWidth = 500; // 가로형 기본 너비
+        
+        if (parentWidth < targetWidth) {
+          const scale = parentWidth / targetWidth;
+          container.style.transform = `scale(${scale})`;
+          container.style.transformOrigin = 'top center';
+          wrapper.style.height = `${container.offsetHeight * scale}px`;
+          return;
+        }
+      }
+      
+      // 세로형이거나 넓은 화면일 때 복구
+      container.style.transform = 'none';
+      wrapper.style.height = 'auto';
+    }
+
+    window.addEventListener('resize', fitReceiptScale);
+
     function switchLayout(type) {
       currentLayout = type;
       const container = document.getElementById('receiptContainer');
@@ -333,7 +368,7 @@
       document.getElementById('generateBtn').classList.remove('hidden');
 
       if (type === 'horizontal') {
-        // 모바일에서도 고정 가로 레이아웃 유지 (min-w 설정으로 찌그러짐 방지)
+        // 가로형 레이아웃 고정 너비
         container.className = "w-[500px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 shrink-0";
         body.className = "grid grid-cols-2 gap-3 items-start";
         left.className = "flex flex-col gap-2 border-r border-dashed border-stone-300 pr-3";
@@ -342,7 +377,7 @@
         btnH.className = "flex-1 py-1.5 rounded-md bg-white shadow-sm transition text-black font-bold";
         btnV.className = "flex-1 py-1.5 rounded-md text-gray-500 transition";
       } else {
-        // 세로 기본 레이아웃
+        // 세로형 기본 레이아웃
         container.className = "w-full max-w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 shrink-0";
         body.className = "flex flex-col gap-3";
         left.className = "flex flex-col gap-3";
@@ -351,6 +386,8 @@
         btnV.className = "flex-1 py-1.5 rounded-md bg-white shadow-sm transition text-black font-bold";
         btnH.className = "flex-1 py-1.5 rounded-md text-gray-500 transition";
       }
+
+      setTimeout(fitReceiptScale, 50);
     }
 
     async function toDataURL(url) {
@@ -381,7 +418,8 @@
       document.getElementById('receiptStatus').innerText = item.status === 'completed' ? '💿 fin' : '🎧 ing';
       document.getElementById('receiptRating').innerText = '★'.repeat(Math.floor(item.rating)) + ` (${item.rating})`;
       
-      document.getElementById('receiptReview').innerText = item.review || '감상평이 없습니다.';
+      // 감상 문구 입력 (공백 방지)
+      document.getElementById('receiptReview').innerText = item.review ? item.review.trim() : '감상평이 없습니다.';
 
       document.getElementById('receiptContainer').classList.remove('hidden');
       document.getElementById('imageResultBox').classList.add('hidden');
@@ -403,6 +441,8 @@
       } else {
         coverBox.classList.add('hidden');
       }
+
+      setTimeout(fitReceiptScale, 100);
     }
 
     function closeReceiptModal() {
@@ -411,7 +451,8 @@
     }
 
     async function generateReceiptImage() {
-      const node = document.getElementById('receiptContainer');
+      const container = document.getElementById('receiptContainer');
+      const wrapper = document.getElementById('receiptScaleWrapper');
       const coverImg = document.getElementById('receiptCover');
 
       if (coverImg && coverImg.src && !coverImg.complete) {
@@ -421,14 +462,19 @@
         });
       }
 
+      // 이미지 캡처 전 transform 임시 해제 (원본 화질 캡처용)
+      const savedTransform = container.style.transform;
+      container.style.transform = 'none';
+
       setTimeout(() => {
-        htmlToImage.toPng(node, { cacheBust: true, pixelRatio: 2 })
+        htmlToImage.toPng(container, { cacheBust: true, pixelRatio: 2 })
         .then(dataUrl => {
           const imgEl = document.getElementById('generatedReceiptImg');
           imgEl.src = dataUrl;
 
-          node.classList.add('hidden');
+          container.classList.add('hidden');
           document.getElementById('generateBtn').classList.add('hidden');
+          wrapper.style.height = 'auto';
           
           const resultBox = document.getElementById('imageResultBox');
           resultBox.classList.remove('hidden');
@@ -436,6 +482,7 @@
         })
         .catch(err => {
           alert('이미지 생성에 실패했습니다.');
+          container.style.transform = savedTransform;
         });
       }, 100);
     }
@@ -485,14 +532,12 @@
         circle: document.getElementById('formCircle').value,
         status: document.getElementById('formStatus').value,
         rating: Number(document.getElementById('formRating').value),
-        review: document.getElementById('formReview').value,
+        review: document.getElementById('formReview').value.trim(),
       };
 
       if (editingId) {
-        // 수정
         items = items.map(item => item.id === editingId ? { ...item, ...formData } : item);
       } else {
-        // 추가
         items.unshift({ id: Date.now().toString(), ...formData });
       }
 
