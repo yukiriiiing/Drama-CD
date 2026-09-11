@@ -67,6 +67,8 @@
       <h2 id="modalTitle" class="text-lg font-bold">새 기록 추가</h2>
       
       <form id="cdForm" onsubmit="handleFormSubmit(event)" class="space-y-3">
+        <input type="hidden" id="editingId" value="">
+
         <div>
           <label class="text-xs text-gray-500 font-medium">감상 날짜</label>
           <input type="date" id="formDate" class="w-full p-2 border rounded-md text-sm" required>
@@ -122,7 +124,7 @@
 
   <!-- 영수증 모달 -->
   <div id="receiptModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50 overflow-y-auto">
-    <div class="bg-white p-4 md:p-5 rounded-xl max-w-2xl w-full flex flex-col items-center gap-4 my-auto max-h-[95vh] overflow-x-hidden overflow-y-auto">
+    <div class="bg-white p-4 md:p-5 rounded-xl max-w-2xl w-full flex flex-col items-center gap-4 my-auto max-h-[95vh] overflow-x-auto overflow-y-auto">
       
       <!-- 레이아웃 스위치 (세로 / 가로 트위터용) -->
       <div class="flex bg-gray-100 p-1 rounded-lg text-xs font-medium w-full max-w-xs shrink-0">
@@ -130,83 +132,91 @@
         <button id="btnHorizontal" onclick="switchLayout('horizontal')" class="flex-1 py-1.5 rounded-md text-gray-500 transition">🐦 가로형 (트위터용)</button>
       </div>
 
-      <!-- 영수증 영역 (세로 / 가로 가변 구조) -->
-      <div id="receiptContainer" class="w-full max-w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 transition-all duration-200">
-        
-        <!-- 헤더 -->
-        <div class="text-center border-b border-dashed border-stone-400 pb-2">
-          <h2 class="text-base font-bold tracking-widest uppercase">DRAMA CD RECEIPT</h2>
-          <p id="receiptDate" class="text-[11px] text-stone-500"></p>
-        </div>
-
-        <!-- 가로형 분기 컨테이너 -->
-        <div id="receiptBody" class="flex flex-col gap-3">
+      <!-- 영수증 컨테이너 스크롤 감싸기 (모바일 짤림 방지) -->
+      <div class="w-full overflow-x-auto flex justify-center py-1">
+        <div id="receiptContainer" class="w-full max-w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 transition-all duration-200 shrink-0">
           
-          <!-- 왼쪽 영역 (가로형 전환 시 왼쪽 배치) -->
-          <div id="receiptLeft" class="flex flex-col gap-3">
-            <div id="receiptCoverBox" class="w-full flex justify-center bg-stone-200/50 p-2 rounded hidden">
-              <img id="receiptCover" src="" alt="Cover" class="w-full h-auto max-h-60 object-contain rounded block">
-            </div>
-
-            <div class="space-y-2 text-xs">
-              <div class="flex flex-col gap-1 pb-1">
-                <span class="text-stone-400 font-semibold text-[10px]">TITLE</span>
-                <div id="receiptTitle" class="font-bold text-stone-800 break-words leading-relaxed text-xs"></div>
-                <div class="w-full h-[1px] bg-stone-200 mt-1"></div>
-              </div>
-
-              <div class="flex justify-between items-center pb-1 gap-2">
-                <span class="text-stone-400 font-semibold text-[10px] shrink-0">CAST</span>
-                <span id="receiptCv" class="text-right break-words max-w-[180px]"></span>
-              </div>
-              <div class="w-full h-[1px] bg-stone-200"></div>
-
-              <div class="flex justify-between items-center pb-1 gap-2">
-                <span class="text-stone-400 font-semibold text-[10px] shrink-0">CIRCLE</span>
-                <span id="receiptCircle" class="text-right break-words max-w-[180px]"></span>
-              </div>
-              <div class="w-full h-[1px] bg-stone-200"></div>
-            </div>
+          <!-- 헤더 -->
+          <div class="text-center border-b border-dashed border-stone-400 pb-2">
+            <h2 class="text-base font-bold tracking-widest uppercase">DRAMA CD RECEIPT</h2>
+            <p id="receiptDate" class="text-[11px] text-stone-500"></p>
           </div>
 
-          <!-- 오른쪽 영역 (가로형 전환 시 오른쪽 배치) -->
-          <div id="receiptRight" class="flex flex-col gap-3">
-            <div id="verticalStatusRating" class="space-y-2 text-xs">
-              <div class="flex justify-between items-center pb-1">
-                <span class="text-stone-400 font-semibold text-[10px]">STATUS</span>
-                <span id="receiptStatus" class="font-bold"></span>
+          <!-- 가로형 분기 컨테이너 -->
+          <div id="receiptBody" class="flex flex-col gap-3">
+            
+            <!-- 왼쪽 영역 -->
+            <div id="receiptLeft" class="flex flex-col gap-3">
+              <div id="receiptCoverBox" class="w-full flex justify-center bg-stone-200/50 p-2 rounded hidden">
+                <img id="receiptCover" src="" alt="Cover" class="w-full h-auto max-h-60 object-contain rounded block">
               </div>
-              <div class="w-full h-[1px] bg-stone-200"></div>
 
-              <div class="flex justify-between items-center pb-1">
-                <span class="text-stone-400 font-semibold text-[10px]">RATING</span>
-                <span id="receiptRating" class="text-amber-600 font-bold"></span>
+              <div class="space-y-2 text-xs">
+                <div class="flex flex-col gap-1 pb-1">
+                  <span class="text-stone-400 font-semibold text-[10px]">TITLE</span>
+                  <div id="receiptTitle" class="font-bold text-stone-800 break-words leading-relaxed text-xs"></div>
+                  <div class="w-full h-[1px] bg-stone-200 mt-1"></div>
+                </div>
+
+                <div class="flex justify-between items-center pb-1 gap-2">
+                  <span class="text-stone-400 font-semibold text-[10px] shrink-0">CAST</span>
+                  <span id="receiptCv" class="text-right break-words max-w-[180px]"></span>
+                </div>
+                <div class="w-full h-[1px] bg-stone-200"></div>
+
+                <div class="flex justify-between items-center pb-1 gap-2">
+                  <span class="text-stone-400 font-semibold text-[10px] shrink-0">CIRCLE</span>
+                  <span id="receiptCircle" class="text-right break-words max-w-[180px]"></span>
+                </div>
+                <div class="w-full h-[1px] bg-stone-200"></div>
               </div>
             </div>
 
-            <div id="receiptReviewBox" class="border-t border-dashed border-stone-400 pt-2 text-xs leading-relaxed text-stone-700 whitespace-pre-wrap break-words flex-1">
-              <p class="font-semibold mb-1 text-stone-400 text-[10px]">[ REVIEW ]</p>
-              <span id="receiptReview"></span>
+            <!-- 오른쪽 영역 -->
+            <div id="receiptRight" class="flex flex-col gap-3">
+              <div id="verticalStatusRating" class="space-y-2 text-xs">
+                <div class="flex justify-between items-center pb-1">
+                  <span class="text-stone-400 font-semibold text-[10px]">STATUS</span>
+                  <span id="receiptStatus" class="font-bold"></span>
+                </div>
+                <div class="w-full h-[1px] bg-stone-200"></div>
+
+                <div class="flex justify-between items-center pb-1">
+                  <span class="text-stone-400 font-semibold text-[10px]">RATING</span>
+                  <span id="receiptRating" class="text-amber-600 font-bold"></span>
+                </div>
+              </div>
+
+              <div id="receiptReviewBox" class="border-t border-dashed border-stone-400 pt-2 text-xs leading-relaxed text-stone-700 whitespace-pre-wrap break-words flex-1">
+                <p class="font-semibold mb-1 text-stone-400 text-[10px]">[ REVIEW ]</p>
+                <span id="receiptReview"></span>
+              </div>
             </div>
+
           </div>
 
-        </div>
-
-        <!-- 바코드 하단 푸터 -->
-        <div class="mt-1 text-center border-t border-stone-300 pt-2">
-          <div class="flex justify-center items-end h-8 gap-[2px] px-4 my-1 overflow-hidden">
-            <div class="bg-stone-800 w-[2px] h-full"></div>
-            <div class="bg-stone-800 w-[1px] h-full"></div>
-            <div class="bg-stone-800 w-[3px] h-full"></div>
-            <div class="bg-stone-800 w-[1px] h-full"></div>
-            <div class="bg-stone-800 w-[2px] h-full"></div>
-            <div class="bg-stone-800 w-[4px] h-full"></div>
-            <div class="bg-stone-800 w-[1px] h-full"></div>
-            <div class="bg-stone-800 w-[2px] h-full"></div>
-            <div class="bg-stone-800 w-[3px] h-full"></div>
+          <!-- 길어진 바코드 하단 푸터 -->
+          <div class="mt-2 text-center border-t border-stone-300 pt-3">
+            <div class="flex justify-center items-end h-14 gap-[2px] px-2 my-1 overflow-hidden">
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-[85%]"></div>
+              <div class="bg-stone-800 w-[3px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-[90%]"></div>
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[4px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-[80%]"></div>
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+              <div class="bg-stone-800 w-[3px] h-[95%]"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
+              <div class="bg-stone-800 w-[2px] h-[85%]"></div>
+              <div class="bg-stone-800 w-[3px] h-full"></div>
+              <div class="bg-stone-800 w-[1px] h-full"></div>
+              <div class="bg-stone-800 w-[4px] h-[90%]"></div>
+              <div class="bg-stone-800 w-[2px] h-full"></div>
+            </div>
+            <p class="text-[10px] text-stone-500 font-mono-receipt tracking-widest mt-1">1 2 3 4 5 6 7 8 9 0</p>
+            <p class="text-[8px] text-stone-400">MY DRAMA CD ARCHIVE</p>
           </div>
-          <p class="text-[9px] text-stone-500 font-mono-receipt tracking-widest mt-0.5">1 2 3 4 5 6 7 8 9 0</p>
-          <p class="text-[8px] text-stone-400">MY DRAMA CD ARCHIVE</p>
         </div>
       </div>
 
@@ -290,9 +300,12 @@
               <h2 class="font-bold text-base truncate">${item.title}</h2>
               <p class="text-xs text-amber-600 font-bold mt-1">★ ${item.rating}</p>
             </div>
-            <div class="flex gap-2 mt-3 text-xs">
+            <div class="flex gap-2 mt-3 text-xs flex-wrap">
               <button onclick="openReceipt('${item.id}')" class="bg-stone-100 hover:bg-stone-200 text-stone-700 px-2.5 py-1 rounded-md font-mono-receipt">
                 🧾 영수증
+              </button>
+              <button onclick="editItem('${item.id}')" class="bg-stone-100 hover:bg-stone-200 text-stone-700 px-2.5 py-1 rounded-md">
+                ✏️ 수정
               </button>
               <button onclick="deleteItem('${item.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 px-2.5 py-1 rounded-md">
                 삭제
@@ -314,24 +327,23 @@
       const btnV = document.getElementById('btnVertical');
       const btnH = document.getElementById('btnHorizontal');
 
-      // 이전 이미지 결과 박스 초기화 (중복 출력 방지)
       document.getElementById('imageResultBox').classList.add('hidden');
       document.getElementById('imageResultBox').classList.remove('flex');
       container.classList.remove('hidden');
       document.getElementById('generateBtn').classList.remove('hidden');
 
       if (type === 'horizontal') {
-        // 가로 트위터 레이아웃 (반응형 너비 적용)
-        container.className = "w-full max-w-[560px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3";
-        body.className = "grid grid-cols-1 sm:grid-cols-2 gap-4 items-start";
-        left.className = "flex flex-col gap-2 border-b sm:border-b-0 sm:border-r border-dashed border-stone-300 pb-3 sm:pb-0 sm:pr-4";
+        // 모바일에서도 고정 가로 레이아웃 유지 (min-w 설정으로 찌그러짐 방지)
+        container.className = "w-[500px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 shrink-0";
+        body.className = "grid grid-cols-2 gap-3 items-start";
+        left.className = "flex flex-col gap-2 border-r border-dashed border-stone-300 pr-3";
         right.className = "flex flex-col gap-2 h-full justify-between";
 
         btnH.className = "flex-1 py-1.5 rounded-md bg-white shadow-sm transition text-black font-bold";
         btnV.className = "flex-1 py-1.5 rounded-md text-gray-500 transition";
       } else {
         // 세로 기본 레이아웃
-        container.className = "w-full max-w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3";
+        container.className = "w-full max-w-[320px] bg-stone-50 p-5 text-stone-800 font-mono-receipt shadow-md border-t-8 border-dashed border-stone-300 flex flex-col gap-3 shrink-0";
         body.className = "flex flex-col gap-3";
         left.className = "flex flex-col gap-3";
         right.className = "flex flex-col gap-3";
@@ -376,7 +388,7 @@
       document.getElementById('imageResultBox').classList.remove('flex');
       document.getElementById('generateBtn').classList.remove('hidden');
 
-      switchLayout('vertical'); // 기본 세로로 열기
+      switchLayout('vertical');
 
       document.getElementById('receiptModal').classList.remove('hidden');
       document.getElementById('receiptModal').classList.add('flex');
@@ -402,7 +414,6 @@
       const node = document.getElementById('receiptContainer');
       const coverImg = document.getElementById('receiptCover');
 
-      // 표지 이미지가 존재하는 경우 로드 완료 보장
       if (coverImg && coverImg.src && !coverImg.complete) {
         await new Promise((resolve) => {
           coverImg.onload = resolve;
@@ -410,7 +421,6 @@
         });
       }
 
-      // DOM 랜더링 완료 후 이미지 생성
       setTimeout(() => {
         htmlToImage.toPng(node, { cacheBust: true, pixelRatio: 2 })
         .then(dataUrl => {
@@ -432,7 +442,28 @@
 
     function openModal() {
       document.getElementById('cdForm').reset();
+      document.getElementById('editingId').value = '';
+      document.getElementById('modalTitle').innerText = '새 기록 추가';
       document.getElementById('formDate').value = new Date().toISOString().split('T')[0];
+      document.getElementById('formModal').classList.remove('hidden');
+      document.getElementById('formModal').classList.add('flex');
+    }
+
+    function editItem(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('editingId').value = item.id;
+      document.getElementById('modalTitle').innerText = '기록 수정';
+      document.getElementById('formDate').value = item.date;
+      document.getElementById('formTitle').value = item.title;
+      document.getElementById('formCoverUrl').value = item.cover_url || '';
+      document.getElementById('formCv').value = item.cv ? item.cv.join(', ') : '';
+      document.getElementById('formCircle').value = item.circle || '';
+      document.getElementById('formStatus').value = item.status;
+      document.getElementById('formRating').value = item.rating;
+      document.getElementById('formReview').value = item.review || '';
+
       document.getElementById('formModal').classList.remove('hidden');
       document.getElementById('formModal').classList.add('flex');
     }
@@ -444,8 +475,9 @@
 
     function handleFormSubmit(e) {
       e.preventDefault();
-      const newItem = {
-        id: Date.now().toString(),
+      const editingId = document.getElementById('editingId').value;
+      
+      const formData = {
         date: document.getElementById('formDate').value,
         title: document.getElementById('formTitle').value,
         cover_url: document.getElementById('formCoverUrl').value,
@@ -456,7 +488,14 @@
         review: document.getElementById('formReview').value,
       };
 
-      items.unshift(newItem);
+      if (editingId) {
+        // 수정
+        items = items.map(item => item.id === editingId ? { ...item, ...formData } : item);
+      } else {
+        // 추가
+        items.unshift({ id: Date.now().toString(), ...formData });
+      }
+
       saveToStorage();
       render();
       closeModal();
