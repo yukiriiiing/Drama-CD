@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>일괄 이미지 크롭 도구 (위치 & 크기 조절 가능)</title>
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #334155;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #0f172a;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 20px;
+      align-items: center;
+      background: #f1f5f9;
+      padding: 16px;
+      border-radius: 8px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .btn {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background-color: #4338ca;
+    }
+
+    .btn-secondary {
+      background-color: #10b981;
+    }
+
+    .btn-secondary:hover {
+      background-color: #059669;
+    }
+
+    .btn:disabled {
+      background-color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .ratio-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    select {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      outline: none;
+    }
+
+    .editor-area {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .crop-wrapper {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      margin: 0 auto;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .crop-wrapper img {
+      max-width: 100%;
+      max-height: 500px;
+      display: block;
+      opacity: 0.7;
+    }
+
+    .crop-box {
+      position: absolute;
+      border: 2px dashed #fff;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      cursor: move;
+      top: 10%;
+      left: 10%;
+      width: 50%;
+      height: 50%;
+    }
+
+    /* 리사이즈 핸들 스타일 */
+    .handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #ffffff;
+      border: 1px solid #4f46e5;
+      border-radius: 2px;
+    }
+
+    .handle-nw { top: -5px; left: -5px; cursor: nwse-resize; }
+    .handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
+    .handle-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+    .handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .preview-item {
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      background: #fff;
+    }
+
+    .preview-item img {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📷 일괄 이미지 크롭 도구</h1>
+
+  <div class="controls">
+    <label for="fileInput" class="btn">사진 선택 (다중 가능)</label>
+    <input type="file" id="fileInput" multiple accept="image/*">
+    
+    <div class="ratio-group">
+      <label for="aspectRatio">비율:</label>
+      <select id="aspectRatio">
+        <option value="free">자유</option>
+        <option value="1">1 : 1 (정사각형)</option>
+        <option value="1.333">4 : 3</option>
+        <option value="1.777">16 : 9</option>
+      </select>
+    </div>
+
+    <button id="cropBtn" class="btn btn-secondary" disabled>선택 영역 일괄 자르기</button>
+  </div>
+
+  <div class="editor-area">
+    <div id="cropWrapper" class="crop-wrapper" style="display: none;">
+      <img id="baseImage" alt="기준 이미지">
+      <div id="cropBox" class="crop-box">
+        <div class="handle handle-nw" data-handle="nw"></div>
+        <div class="handle handle-ne" data-handle="ne"></div>
+        <div class="handle handle-sw" data-handle="sw"></div>
+        <div class="handle handle-se" data-handle="se"></div>
+      </div>
+    </div>
+
+    <h3>미리보기 및 결과</h3>
+    <div id="previewGrid" class="preview-grid"></div>
+  </div>
+</div>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const cropWrapper = document.getElementById('cropWrapper');
+  const baseImage = document.getElementById('baseImage');
+  const cropBox = document.getElementById('cropBox');
+  const cropBtn = document.getElementById('cropBtn');
+  const previewGrid = document.getElementById('previewGrid');
+  const aspectRatioSelect = document.getElementById('aspectRatio');
+
+  let loadedImages = [];
+  let isAction = false;
+  let actionType = null; // 'move' or 'nw', 'ne', 'sw', 'se'
+  let startX, startY, initLeft, initTop, initWidth, initHeight;
+
+  fileInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    loadedImages = [];
+    previewGrid.innerHTML = '';
+    
+    let loadedCount = 0;
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          loadedImages.push({ name: file.name, img: img });
+          loadedCount++;
+          if (loadedCount === files.length) initEditor();
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  function initEditor() {
+    baseImage.src = loadedImages[0].img.src;
+    cropWrapper.style.display = 'inline-block';
+    cropBtn.disabled = false;
+    resetCropBox();
+  }
+
+  function resetCropBox() {
+    cropBox.style.left = '10%';
+    cropBox.style.top = '10%';
+    cropBox.style.width = '50%';
+    cropBox.style.height = '50%';
+    applyAspectRatio();
+  }
+
+  aspectRatioSelect.addEventListener('change', applyAspectRatio);
+
+  function applyAspectRatio() {
+    const ratio = aspectRatioSelect.value;
+    if (ratio === 'free') return;
+
+    const numRatio = parseFloat(ratio);
+    const curW = cropBox.offsetWidth;
+    const newH = curW / numRatio;
+    cropBox.style.height = `${newH}px`;
+  }
+
+  // 위치 이동 및 크기 조절 마우스 이벤트
+  cropBox.addEventListener('mousedown', (e) => {
+    isAction = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    initLeft = cropBox.offsetLeft;
+    initTop = cropBox.offsetTop;
+    initWidth = cropBox.offsetWidth;
+    initHeight = cropBox.offsetHeight;
+
+    if (e.target.classList.contains('handle')) {
+      actionType = e.target.dataset.handle;
+    } else {
+      actionType = 'move';
+    }
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    e.stopPropagation();
+  });
+
+  function onMouseMove(e) {
+    if (!isAction) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const wrapperW = cropWrapper.clientWidth;
+    const wrapperH = cropWrapper.clientHeight;
+    const ratioSetting = aspectRatioSelect.value;
+    const isFixedRatio = ratioSetting !== 'free';
+    const numRatio = isFixedRatio ? parseFloat(ratioSetting) : null;
+
+    if (actionType === 'move') {
+      let newLeft = Math.min(Math.max(0, initLeft + dx), wrapperW - initWidth);
+      let newTop = Math.min(Math.max(0, initTop + dy), wrapperH - initHeight);
+      cropBox.style.left = `${newLeft}px`;
+      cropBox.style.top = `${newTop}px`;
+    } else {
+      // 크기 조절 (Resize)
+      let newW = initWidth;
+      let newH = initHeight;
+      let newL = initLeft;
+      let newT = initTop;
+
+      if (actionType.includes('e')) newW = Math.max(30, initWidth + dx);
+      if (actionType.includes('s')) newH = Math.max(30, initHeight + dy);
+      if (actionType.includes('w')) {
+        const possibleW = initWidth - dx;
+        if (possibleW > 30) {
+          newW = possibleW;
+          newL = initLeft + dx;
+        }
+      }
+      if (actionType.includes('n')) {
+        const possibleH = initHeight - dy;
+        if (possibleH > 30) {
+          newH = possibleH;
+          newT = initTop + dy;
+        }
+      }
+
+      if (isFixedRatio) {
+        newH = newW / numRatio;
+      }
+
+      // 영역 이탈 방지
+      if (newL >= 0 && newT >= 0 && newL + newW <= wrapperW && newT + newH <= wrapperH) {
+        cropBox.style.width = `${newW}px`;
+        cropBox.style.height = `${newH}px`;
+        cropBox.style.left = `${newL}px`;
+        cropBox.style.top = `${newT}px`;
+      }
+    }
+  }
+
+  function onMouseUp() {
+    isAction = false;
+    actionType = null;
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+
+  // 일괄 크롭 실행
+  cropBtn.addEventListener('click', () => {
+    previewGrid.innerHTML = '';
+
+    const scaleX = cropBox.offsetLeft / cropWrapper.clientWidth;
+    const scaleY = cropBox.offsetTop / cropWrapper.clientHeight;
+    const scaleW = cropBox.offsetWidth / cropWrapper.clientWidth;
+    const scaleH = cropBox.offsetHeight / cropWrapper.clientHeight;
+
+    loadedImages.forEach((item) => {
+      const img = item.img;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      const cropX = img.naturalWidth * scaleX;
+      const cropY = img.naturalHeight * scaleY;
+      const cropW = img.naturalWidth * scaleW;
+      const cropH = img.naturalHeight * scaleH;
+
+      canvas.width = cropW;
+      canvas.height = cropH;
+
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+      const croppedDataUrl = canvas.toDataURL('image/png');
+      
+      const previewItem = document.createElement('div');
+      previewItem.className = 'preview-item';
+      
+      const previewImg = document.createElement('img');
+      previewImg.src = croppedDataUrl;
+
+      const downloadLink = document.createElement('a');
+      downloadLink.href = croppedDataUrl;
+      downloadLink.download = `cropped_${item.name}`;
+      downloadLink.innerText = '다운로드';
+      downloadLink.className = 'btn';
+      downloadLink.style.display = 'inline-block';
+      downloadLink.style.padding = '4px 8px';
+      downloadLink.style.fontSize = '0.75rem';
+
+      previewItem.appendChild(previewImg);
+      previewItem.appendChild(downloadLink);
+      previewGrid.appendChild(previewItem);
+    });
+  });
+</script>
+
+</body>
+</html>
